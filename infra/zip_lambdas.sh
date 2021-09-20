@@ -1,1 +1,2 @@
-zip lambdas/lambda-sqs-s3/function.zip lambdas/lambda-sqs-s3/lambda.py
+cd lambdas/lambda-sqs-s3/
+zip function.zip lambda.py
