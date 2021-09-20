@@ -7,7 +7,7 @@ PYTZ_URL=https://files.pythonhosted.org/packages/70/94/784178ca5dd892a98f113cdd9
 PYTZ_FILE=pytz-2021.1-py2.py3-none-any.whl
 
 if [[ -f "$LAYER_ZIP" ]]; then
-    rm $FILE
+    rm $LAYER_ZIP
 fi
 mkdir python
 cd python
