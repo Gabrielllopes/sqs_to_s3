@@ -3,21 +3,31 @@ import json
 import logging
 import pandas as pd
 import uuid
+import s3fs
+import time
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 sqs_client = boto3.client("sqs")
 glue_client = boto3.client("glue")
-
-SQS_NAME = "poc-lambdas3"
-DB = "db1"
-TABLE = "tabelateste"
-SAVEPATH_S3 = "s3://test-glue-create-table-terraform-8888/folder-test/"
-SUBDIV = "17-09-2021"
-
+# Example usage
+"""
+aws lambda invoke \
+--function-name sqs_to_s3 \
+--invocation-type RequestResponse \
+--payload '{ "sqs_name":"poc-lambdas3", "db":"database-test", "table":"tabela_imaginaria", "s3_bucket_and_folder":"s3://test-glue-create-table-terraform-8888/teste_dirr/", "partition":"20-09-2021" }' \
+response.json
+"""
 
 def lambda_handler(event, context):
+
+    sqs_name = event["sqs_name"]
+    db = event["db"]
+    table = event["table"]
+    s3_bucket = event["s3_bucket_and_folder"]
+    partition = event["partition"]
+
     logger.info("====> SQS TO S3 LAMBDA INIT")
     # Because lambda has a memory limitation
     # we will limit the amout of messages processed at the same time
@@ -25,7 +35,7 @@ def lambda_handler(event, context):
     # list the amout of messages
     try:
         sqs_response = sqs_client.get_queue_attributes(
-            QueueUrl=SQS_NAME, AttributeNames=["ApproximateNumberOfMessages"]
+            QueueUrl=sqs_name, AttributeNames=["ApproximateNumberOfMessages"]
         )
         total_messages = \
             int(sqs_response["Attributes"]["ApproximateNumberOfMessages"])
@@ -40,17 +50,29 @@ def lambda_handler(event, context):
             # 300 messages aprox 75mb
             # OBS: lambda functing default memory is 128mb
             if total_messages > 300:
-                sqs_to_s3(sqs_name=SQS_NAME, total=300)
+                sqs_to_s3(
+                    sqs_name=sqs_name,
+                    total=300,
+                    database=db,
+                    table=table,
+                    s3_bucket=s3_bucket,
+                    partition=partition)
                 total_messages -= 300
             else:
-                sqs_to_s3(sqs_name=SQS_NAME, total=total_messages)
+                sqs_to_s3(
+                    sqs_name=sqs_name,
+                    total=total_messages,
+                    database=db,
+                    table=table,
+                    s3_bucket=s3_bucket,
+                    partition=partition)
                 total_messages = 0
         except Exception as e:
             logger.error("Error while reading sqs.\n{}".format(e))
             raise
 
 
-def sqs_to_s3(sqs_name, total):
+def sqs_to_s3(sqs_name, total, database, table, s3_bucket, partition):
     logger.info("====> FUNCTION sqs_to_s3")
     chunk = []
     messages_id = []
@@ -82,10 +104,8 @@ def sqs_to_s3(sqs_name, total):
 
     try:
         # saving into parquet
-        df.to_parquet(
-            f"{SAVEPATH_S3}{DB}/{TABLE}/{SUBDIV}/",
-            compression="gzip"
-        )
+        filename=str(time.time())[-10:-1]+".json"
+        df.to_json(f"{s3_bucket}{database}/{table}/{partition}/{filename}")
     except Exception as e:
         logger.error("Error saving dataframe into s3.\nError:{}".format(e))
         raise
