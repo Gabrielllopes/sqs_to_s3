@@ -14,6 +14,7 @@ glue_client = boto3.client("glue")
 # Example usage
 """
 aws lambda invoke \
+--cli-binary-format raw-in-base64-out \
 --function-name sqs_to_s3 \
 --invocation-type RequestResponse \
 --payload '{ "sqs_name":"poc-lambdas3", "db":"database-test", "table":"tabela_imaginaria", "s3_bucket_and_folder":"s3://test-glue-create-table-terraform-8888/teste_dirr/", "partition":"20-09-2021" }' \

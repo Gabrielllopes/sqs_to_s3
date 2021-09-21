@@ -20,6 +20,27 @@ $ cd ../
 $ terraform init
 $ terraform apply
 ```
+
+## Using the lambda to save the sqs
+All the paramters are passed to the function as payload in JSON format
+### Paramters
+* sqs_name = Name of the sqs queue
+* db = sufix for saving into s3
+* table = sufix for saving into s3
+* s3_bucket_and_folder = bucket where the data will be saved
+* partition = sufix for saving into s3
+
+Final format on S3:
+```{s3_bucket_and_folder}/{db}/{table}/{partition}/file.json```
+
+```bash
+aws lambda invoke \
+--cli-binary-format raw-in-base64-out \
+--function-name sqs_to_s3 \
+--invocation-type RequestResponse \
+--payload '{ "sqs_name":"poc-lambdas3", "db":"database-test", "table":"tabela_imaginaria", "s3_bucket_and_folder":"s3://test-glue-create-table-terraform-8888/teste_dirr/", "partition":"20-09-2021" }' \
+response.json
+```
 ## infra
 Terraform code of the aws components.
 
